@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+import scrapy
+
+
+class FirespiderSpider(scrapy.Spider):
+    name = 'firespider'
+    page_number = 2
+    allowed_domains = ['kicksonfire.com']
+    start_urls = ['https://www.kicksonfire.com/app/upcoming?page=1']
+
+    def parse(self, response):
+        single_shoe = response.xpath ('//*[@class="col-xs-12 col-sm-6 col-md-4 release-date-item-continer clear-padding"]')
+        for release in single_shoe:
+                shoe_name = release.xpath('.//*[@class="release-date-title"]/text()').extract()[0].strip()
+                shoe_date = release.xpath('.//*[@class="event-date first-event"]//div/text()').extract()[0].strip()
+
+                yield {'Schuh': shoe_name, 'Release Datum': shoe_date}
+
+
+        next_page = "https://www.kicksonfire.com/app/upcoming?page="+ str(FirespiderSpider.page_number)
+        if FirespiderSpider.page_number < 6:
+            FirespiderSpider.page_number += 1
+            yield response.follow(next_page,callback=self.parse)
