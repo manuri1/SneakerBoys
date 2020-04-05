@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from scrapy.http import Request
 
 
 class FirespiderSpider(scrapy.Spider):
@@ -8,16 +9,23 @@ class FirespiderSpider(scrapy.Spider):
     allowed_domains = ['kicksonfire.com']
     start_urls = ['https://www.kicksonfire.com/app/upcoming?page=1']
 
+    CUSTOM_PROXY = "http://80.187.140.26:8080"
+
+    def start_request (self):
+        for url  in self.start_urls():
+            request = scrapy.request(url,callback = self.parse)
+            request.meta['proxy'] = self.CUSTOM_PROXY
+            yield request
+
     def parse(self, response):
-        single_shoe = response.xpath ('//*[@class="col-xs-12 col-sm-6 col-md-4 release-date-item-continer clear-padding"]')
-        for release in single_shoe:
-                shoe_name = release.xpath('.//*[@class="release-date-title"]/text()').extract()[0].strip()
-                shoe_date = release.xpath('.//*[@class="event-date first-event"]//div/text()').extract()[0].strip()
-
-                yield {'Schuh': shoe_name, 'Release Datum': shoe_date}
+        shoe_links = response.xpath ('//div/a/@href').extract()[1:None]
+        for link in shoe_links:
+            yield scrapy.Request(link, callback=self.parse_page, dont_filter=True)
 
 
-        next_page = "https://www.kicksonfire.com/app/upcoming?page="+ str(FirespiderSpider.page_number)
-        if FirespiderSpider.page_number < 6:
-            FirespiderSpider.page_number += 1
-            yield response.follow(next_page,callback=self.parse)
+    def parse_page(self, response):
+        shoe_name = response.xpath('//div/h2/text()').extract()[0].strip()
+        print('Schuh:' + shoe_name)
+        yield {'Schuh': shoe_name}
+
+
