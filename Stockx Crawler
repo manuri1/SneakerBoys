@@ -1,0 +1,30 @@
+import scrapy
+
+class Spider200408_2Item(scrapy.Item):
+	link = scrapy.Field()
+	name = scrapy.Field()
+	release_date = scrapy.Field()
+	retail_price = scrapy.Field()
+	resell_price = scrapy.Field()
+
+class Spider200408_2Spider(scrapy.Spider):
+    name = 'spider_200408_2'
+    allowed_domains = ['stockx.com']
+    start_urls = ['https://stockx.com/sneakers/release-date?page=1']
+
+    BASE_URL = 'https://stockx.com'
+
+    def parse(self, response):
+    	links = response.css('.browse-grid a::attr(href)').extract()
+    	for link in links:
+    		absolute_url = self.BASE_URL + link
+    		yield scrapy.Request(absolute_url, callback=self.parse_info)
+
+    def parse_info(self, response):
+    	item = Spider200408_2Item()
+    	item["link"] = response.url
+    	item["name"] = "".join(response.xpath("//h1[@class='name']//text()").extract())
+    	item["release_date"] = "".join(response.xpath("//span[@data-testid='product-detail-release date']//text()").extract())
+    	item["retail_price"] = "".join(response.xpath("//span[@data-testid='product-detail-retail price']//text()").extract())
+    	item["resell_price"] = "".join(response.xpath("//div[@class='gauge-value']//text()").extract())
+    	return item
